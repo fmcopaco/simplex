@@ -8,7 +8,7 @@ Os presento simplex.h una librería para Arduino para realizar animaciones y alg
 nuestras maquetas con comandos simples y compatibles con la programación tradicional del
 lenguaje Arduino.
 
-simplex.h es una librería para Arduino que aprovechando la potencia del preprocesador del
+**simplex.h** es una librería para Arduino que aprovechando la potencia del preprocesador del
 lenguaje Arduino proporciona comandos simples para automatizar nuestras maquetas y es
 plenamente integrable con el lenguaje Arduino.
 
@@ -16,20 +16,19 @@ plenamente integrable con el lenguaje Arduino.
 
 ## Librería
 
-Para usar la librería sólo hay que copiar los archivos simplex.h y simplex.cpp al directorio
-donde se encuentra vuestro sketch, incluir la librería y en el loop() poner RUN_SIMPLEX al
-inicio:
+Para usar la librería sólo hay que copiar los archivos **simplex.h** y **simplex.cpp** al directorio donde se encuentra vuestro sketch, incluir la librería y en el **loop()** poner **RUN_SIMPLEX** al inicio:
 
-![textsimplexalt ](images/simplex.png)
+![simplex ](images/simplex.png)
+
+Otra opción es descargar esta librería como archivo .zip y añadirla en el Arduino IDE desde el menú Programa -> Incluir Librería -> **Añadir biblioteca .ZIP ...**,  además también estarán disponibles los ejemplos en el menú **Archivo** y no necesitareis copiar los archivos **simplex.h** y **simplex.cpp** al directorio donde se encuentra vuestro sketch.
 
 ## Comandos
 
-IMPORTANTE Entre el comando y el ( no deben escribirse espacios ya que sino el
+**IMPORTANTE** Entre el comando y el **(** no deben escribirse espacios ya que sino el
 prepocesador generará un error al compilar el código.
 
 ### Comandos básicos
 
-Comandos básicos:
 |Comando|Descripción|
 |---|---|
 |RUN_SIMPLEX |Procesa las acciones de simplex.h|
@@ -78,11 +77,16 @@ Comandos básicos:
 
 ## Manual
 
-El manual de la librería lo podeis ver [aquí](doc/simplex_manual.pdf)
+El manual de la librería lo podéis ver [aquí](doc/simplex_manual.pdf).
+
+## Ejemplos
+Los ejemplos del manual los podéis ver [aquí](examples/).
+
+Hay una plantilla en blanco [aquí](examples/blank/).
 
 ## Videos
 
-[![PacoWagon](https://img.youtube.com/vi/o2QX1ISs8tc/0.jpg)](https://www.youtube.com/watch?v=o2QX1ISs8tc)
+[![simplex](https://img.youtube.com/vi/o2QX1ISs8tc/0.jpg)](https://www.youtube.com/watch?v=o2QX1ISs8tc)
 
 
 ---
