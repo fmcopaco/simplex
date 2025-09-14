@@ -8,8 +8,11 @@ pinData pinDef[_MAX_PINS];
 delayData delayDef[_MAX_TIMERS];
 Servo servo[_MAX_SERVO];                                                    // Objetos
 uint8_t servoUsed = 0;
-uint8_t currentFSM, nextFSM;
+uint8_t currentStateFSM[_MAX_FSM + 1];
+uint8_t nextStateFSM[_MAX_FSM + 1];
 uint8_t countFSM = 0;
+uint8_t countStateFSM = 0;
+uint8_t currentFSM = 0;
 uint32_t currentTime;
 uint8_t repeatCurrent = 0;
 uint16_t repeatVar[_MAX_REPEAT + 1];
@@ -452,19 +455,27 @@ bool repeatSimplex(uint16_t num) {
   }
 }
 
+uint8_t newFSM() {
+  countFSM += (countFSM >= _MAX_FSM) ? 0 : 1;
+  return countFSM;
+}
+
+uint8_t useFSM(uint8_t num) {
+  currentFSM = num;
+}
 
 uint8_t newState() {
-  countFSM++;
-  return countFSM;
+  countStateFSM++;
+  return countStateFSM;
 }
 
 
 void setStateFSM(uint8_t state) {
-  nextFSM = state;
+  nextStateFSM[currentFSM] = state;
 }
 
 uint8_t getStateFSM() {
-  return currentFSM;
+  return currentStateFSM[currentFSM];
 }
 
 
@@ -581,12 +592,14 @@ bool isAccessoryDCC(uint16_t adr, uint8_t state) {
 
 
 void processSimplexBasic() {
+  uint8_t n;
   currentTime = millis();
   if (lastTime != (uint8_t)currentTime) {                 // every new ms
     lastTime = (uint8_t)currentTime;
     processTimers();                                      // timers
   }
-  currentFSM = nextFSM;                                   // state machine
+  for (n = 0; n <= _MAX_FSM; n++)
+    currentStateFSM[n] = nextStateFSM[n];                 // state machine
 }
 
 void receiveSimplexDCC() {

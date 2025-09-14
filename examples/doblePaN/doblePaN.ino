@@ -1,36 +1,38 @@
 #include "simplex.h"        // Librería de acciones simples de Paco Cañada 2025
 
-                            // Define los nombres aquí
+// Define los nombres aquí
 SET_NAME(BARRERA, 6)                // Nombre para el pin del servo
 SET_NAME(IZQUIERDA_N, 3)            // Nombre para el pin del sensor izquierda vía norte
 SET_NAME(DERECHA_N, 2)              // Nombre para el pin del sensor derecha vía norte
-SET_NAME(IZQUIERDA_S, 3)            // Nombre para el pin del sensor izquierda vía sur
-SET_NAME(DERECHA_S, 2)              // Nombre para el pin del sensor derecha vía sur
+SET_NAME(IZQUIERDA_S, 9)            // Nombre para el pin del sensor izquierda vía sur
+SET_NAME(DERECHA_S, 8)              // Nombre para el pin del sensor derecha vía sur
 SET_NAME(LUZ1, 4)                   // Nombre para el pin del LED rojo
 SET_NAME(LUZ2, 5)                   // Nombre para el pin del LED rojo
 
-                            // Define los estados aquí
+// Define los estados aquí (multi FSM)
+FSM_NEW(FSM_VIA_N)
 FSM_NAME(LIBRE_N)                   // paso a nivel libre vía Norte
 FSM_NAME(ENTRA_DERECHA_N)           // tren entrando por la derecha
 FSM_NAME(ENTRA_IZQUIERDA_N)         // tren entrando por la izquierda
 FSM_NAME(SALE_DERECHA_N)            // tren saliendo por la derecha
 FSM_NAME(SALE_IZQUIERDA_N)          // tren saliendo por la izquierda
+
+FSM_NEW(FSM_VIA_S)
 FSM_NAME(LIBRE_S)                   // paso a nivel libre vía Sur
 FSM_NAME(ENTRA_DERECHA_S)           // tren entrando por la derecha
 FSM_NAME(ENTRA_IZQUIERDA_S)         // tren entrando por la izquierda
 FSM_NAME(SALE_DERECHA_S)            // tren saliendo por la derecha
 FSM_NAME(SALE_IZQUIERDA_S)          // tren saliendo por la izquierda
+
+FSM_NEW(FSM_BARRERA)
 FSM_NAME(PAN_LIBRE)                 // Paso a nivel libre
 FSM_NAME(TREN_DETECTADO)            // Tren detectado en paso a nivel
 
-                            // Define las variables aquí
+// Define las variables aquí
 VAR_NAME(trenEnViaN)
 VAR_NAME(trenEnViaS)
-VAR_NAME(FSM_VIA_N)
-VAR_NAME(FSM_VIA_S)
-VAR_NAME(FSM_BARRERA)
 
-                            // Define funciones adicionales aquí
+// Define funciones adicionales aquí
 FUNCTION(BajarBarrera) {
   SET(LUZ1)
   SET(LUZ2)
@@ -43,8 +45,25 @@ FUNCTION(SubirBarrera) {
   SERVO(BARRERA, 90)
 }
 
+FUNCTION(PASO_A_NIVEL) {               // Paso a nivel
+  FSM_USE(FSM_BARRERA)
+  FSM_STATE(PAN_LIBRE) {
+    OR(trenEnViaN, trenEnViaS) {
+      CALL(BajarBarrera)
+      FSM_GO(TREN_DETECTADO)
+    }
+  }
+
+  FSM_STATE(TREN_DETECTADO) {
+    AND(NOT(trenEnViaN), NOT(trenEnViaS)) {
+      CALL(SubirBarrera)
+      FSM_GO(PAN_LIBRE)
+    }
+  }
+}
+
 void setup() {
-                            // Define los pines aquí
+  // Define los pines aquí
   PIN_SERVO(BARRERA)                // servo que mueve la campana
   PIN_TIME(BARRERA, 10)             // velocidad del servo
   PIN_EFFECT(LUZ1)                  // LED rojo señal
@@ -63,13 +82,17 @@ void setup() {
   PIN_SENSOR(IZQUIERDA_S)           // sensor izquierda vía sur
   PIN_TIME(IZQUIERDA_S, 2000)       // para sensor infrarrojo aumentar tiempo
 
-                            // Define el estado inicial aquí
+  // Define el estado inicial aquí
   CALL(SubirBarrera)
   SET_VAR(trenEnViaN, 0)
   SET_VAR(trenEnViaS, 0)
-  SET_VAR(FSM_VIA_N, LIBRE_N)
-  SET_VAR(FSM_VIA_S, LIBRE_S)
-  SET_VAR(FSM_BARRERA, PAN_LIBRE)
+
+  FSM_USE(FSM_VIA_N)                // estados iniciales de cada FSM
+  FSM_GO(LIBRE_N)
+  FSM_USE(FSM_VIA_S)
+  FSM_GO(LIBRE_S)
+  FSM_USE(FSM_BARRERA)
+  FSM_GO(PAN_LIBRE)
 }
 
 
@@ -83,41 +106,42 @@ void loop() {
 
 
 FUNCTION(VIA_NORTE) {               // Vía Norte
-  EQUAL(FSM_VIA_N, LIBRE_N){     
+  FSM_USE(FSM_VIA_N)
+  FSM_STATE(LIBRE_N) {
     ACTIVE(DERECHA_N) {
       SET_VAR(trenEnViaN, 1)
-      SET_VAR(FSM_VIA_N, ENTRA_DERECHA_N)         
+      FSM_GO(ENTRA_DERECHA_N)
     }
     ACTIVE(IZQUIERDA_N) {
       SET_VAR(trenEnViaN, 1)
-      SET_VAR(FSM_VIA_N, ENTRA_IZQUIERDA_N)       
+      FSM_GO(ENTRA_IZQUIERDA_N)
     }
   }
 
-  EQUAL(FSM_VIA_N, ENTRA_DERECHA_N) {
+  FSM_STATE(ENTRA_DERECHA_N) {
     ACTIVE(IZQUIERDA_N) {
-     SET_VAR(FSM_VIA_N, SALE_IZQUIERDA_N)
+      FSM_GO(SALE_IZQUIERDA_N)
     }
   }
 
-  EQUAL(FSM_VIA_N, ENTRA_IZQUIERDA_N) {
+  FSM_STATE(ENTRA_IZQUIERDA_N) {
     ACTIVE(DERECHA_N) {
-     SET_VAR(FSM_VIA_N, SALE_DERECHA_N)
+      FSM_GO(SALE_DERECHA_N)
     }
   }
 
-  EQUAL(FSM_VIA_N, SALE_DERECHA_N) {
+  FSM_STATE(SALE_DERECHA_N) {
     FREE(DERECHA_N) {
-     SET_VAR(trenEnViaN, 0)
-     SET_VAR(FSM_VIA_N, LIBRE_N)                     
+      SET_VAR(trenEnViaN, 0)
+      FSM_GO(LIBRE_N)
     }
   }
 
 
-EQUAL(FSM_VIA_N, SALE_IZQUIERDA_N) {
-    FREE(IZQUIERDA) {
-     SET_VAR(trenEnViaN, 0)
-     SET_VAR(FSM_VIA_N, LIBRE_N)                     
+  FSM_STATE(SALE_IZQUIERDA_N) {
+    FREE(IZQUIERDA_N) {
+      SET_VAR(trenEnViaN, 0)
+      FSM_GO(LIBRE_N)
     }
   }
 
@@ -125,56 +149,41 @@ EQUAL(FSM_VIA_N, SALE_IZQUIERDA_N) {
 
 
 FUNCTION(VIA_SUR) {               // Vía Sur
-  EQUAL(FSM_VIA_S, LIBRE_S){     
+  FSM_USE(FSM_VIA_S)
+  FSM_STATE(LIBRE_S) {
     ACTIVE(DERECHA_S) {
       SET_VAR(trenEnViaS, 1)
-      SET_VAR(FSM_VIA_S, ENTRA_DERECHA_S)         
+      FSM_GO(ENTRA_DERECHA_S)
     }
     ACTIVE(IZQUIERDA_S) {
       SET_VAR(trenEnViaS, 1)
-      SET_VAR(FSM_VIA_S, ENTRA_IZQUIERDA_S)       
+      FSM_GO(ENTRA_IZQUIERDA_S)
     }
   }
 
-EQUAL(FSM_VIA_S, ENTRA_DERECHA_S) {
+  FSM_STATE(ENTRA_DERECHA_S) {
     ACTIVE(IZQUIERDA_S) {
-     SET_VAR(FSM_VIA_S, SALE_IZQUIERDA_S)
+      FSM_GO(SALE_IZQUIERDA_S)
     }
   }
 
-EQUAL(FSM_VIA_S, ENTRA_IZQUIERDA_S) {
+  FSM_STATE(ENTRA_IZQUIERDA_S) {
     ACTIVE(DERECHA_S) {
-     SET_VAR(FSM_VIA_S, SALE_DERECHA_S)
+      FSM_GO(SALE_DERECHA_S)
     }
   }
 
-EQUAL(FSM_VIA_S, SALE_DERECHA_S) {
+  FSM_STATE(SALE_DERECHA_S) {
     FREE(DERECHA_S) {
-     SET_VAR(trenEnViaS, 0)
-     SET_VAR(FSM_VIA_S, LIBRE_S)                     
+      SET_VAR(trenEnViaS, 0)
+      FSM_GO(LIBRE_S)
     }
   }
 
-EQUAL(FSM_VIA_S, SALE_IZQUIERDA_S) {
-    FREE(IZQUIERDA) {
-     SET_VAR(trenEnViaS, 0)
-     SET_VAR(FSM_VIA_S, LIBRE_S)                     
-    }
-  }
-
-
-FUNCTION(PASO_A_NIVEL) {               // Paso a nivel
-  EQUAL(FSM_BARRERA, PAN_LIBRE) {
-    OR(trenEnViaN, trenEnViaS) {
-      CALL(BajarBarrera)
-      SET_VAR(FSM_BARRERA, TREN_DETECTADO)
-    }
-  }
-
-  EQUAL(FSM_BARRERA, TREN_DETECTADO) {
-    AND(NOT(trenEnViaN), NOT(trenEnViaS)) {
-      CALL(SubirBarrera)
-      SET_VAR(FSM_BARRERA, PAN_LIBRE)
+  FSM_STATE(SALE_IZQUIERDA_S) {
+    FREE(IZQUIERDA_S) {
+      SET_VAR(trenEnViaS, 0)
+      FSM_GO(LIBRE_S)
     }
   }
 }

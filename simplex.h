@@ -18,6 +18,7 @@
 #define _FLASH_TOUT   500                                       // Default time for flashing (OUT/EFFECT)
 #define _MAX_TIMERS   4                                         // Max. defined timers
 #define _MAX_REPEAT   4                                         // Max. nested repeats
+#define _MAX_FSM      10                                        // Max. FSM
 
 ////////////////////////////////////////////////////////////
 // ***** END OF USER OPTIONS *****                              // Don't change anything below here
@@ -62,6 +63,8 @@
 #define FREE(p)         if (!isInputActive(p))                  // check if input
 #define PRESSED(p)      if (isInputActive(p))                   // check if button pressed
 
+#define FSM_NEW(n)      const uint8_t n = newFSM();             // FSM, add a new FSM
+#define FSM_USE(n)      useFSM(n);                              // FSM, use FSM
 #define FSM_NAME(n)     const uint8_t n = newState();           // FSM, name definition of a state
 #define FSM_STATE(n)    if (getStateFSM() == n)                 // FSM, check for a state (0..255)
 #define FSM_GO(n)       setStateFSM(n);                         // FSM, transition to new state (0..255)
@@ -149,6 +152,8 @@ bool isInputActive(uint8_t num);
 void waitServoStop(uint8_t num);
 void newRepeat();
 uint8_t newState();
+uint8_t newFSM();
+uint8_t useFSM(uint8_t num);
 bool repeatSimplex(uint16_t num);
 
 

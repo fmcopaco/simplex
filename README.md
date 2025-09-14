@@ -51,6 +51,8 @@ prepocesador generará un error al compilar el código.
 |PRESSED(p) |Comprobar si se pulsó el botón|
 |ACTIVE(p) |Comprobar si el sensor esta activo|
 |FREE(p) |Comprobar si el sensor esta libre|
+|FSM_NEW(n) |FSM, define el nombre de una nueva FSM (Multi FSM)|
+|FSM_USE(n) |FSM, usar los estados correspondientes al FSM (Multi FSM)|
 |FSM_NAME(n) |FSM, define el nombre de un nuevo estado|
 |FSM_STATE(n) |FSM, comprobar estado actual|
 |FSM_GO(n) |FSM, transición a un nuevo estado|
