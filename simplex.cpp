@@ -268,7 +268,6 @@ void processTimers() {                                                        //
                     pinDef[n].pos = 0x19;                                     // prescaler
                     pinDef[n].pwm = pinDef[n].target;
                     i = (pinDef[n].target + getRandom()) / 2;                 // reduce dynamics
-                    i = i + (pinDef[n].target / 2);
                     pinDef[n].target = (i > MAX_BRIGHT) ? MAX_BRIGHT : i;
                   }
                   else
