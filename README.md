@@ -4,7 +4,7 @@ Muchas veces queremos añadir algún elemento a nuestras maquetas con algún tip
 o pequeña automatización y consultando con nuestros amigos como implementarlo siempre
 hay alguien que dice: “Eso con Arduino es más sencillo de hacer!”.
 
-Os presento simplex.h una librería para Arduino para realizar animaciones y algo más en
+Os presento **simplex.h** una librería para Arduino para realizar animaciones y algo más en
 nuestras maquetas con comandos simples y compatibles con la programación tradicional del
 lenguaje Arduino.
 

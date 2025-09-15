@@ -494,11 +494,11 @@ unsigned int dccEdge;
 
 void dccISR() {
   if (*dccPinPort & dccPinMask) {   // because digitalRead at AVR is slow (~6us), we will read the dcc input in the ISR by direct port access (~125ns).
-    dccBit =  ((unsigned int)micros() - dccEdge > 87) ? false : true;       // 77us: between 64us (one) and 90us (zero)
+    dccBit =  ((unsigned int)micros() - dccEdge > 77) ? false : true;       // 77us: between 64us (one) and 90us (zero)
     switch (dccState) {
       case 0:                                                               // Preamble
         if (! newPacket) {                                                  // last packet decoded?
-          preambleCount = dccBit ? preambleCount++ : 0;
+          preambleCount = dccBit ? preambleCount + 1 : 0;
           if (preambleCount > 9)
             dccState++;
         }
@@ -512,9 +512,9 @@ void dccISR() {
         }
         break;
       case 9:                                                               // ReadLastBit
-        dccShift >>= 1;
+        dccShift <<= 1;
         if (dccBit)
-          dccShift |= 0x80;
+          dccShift |= 0x01;
         dccBytes++;
         dccState += dccBytes;
         break;
@@ -545,9 +545,9 @@ void dccISR() {
           newPacket = true;
         break;
       default:                                                              // ReadBit
-        dccShift >>= 1;
+        dccShift <<= 1;
         if (dccBit)
-          dccShift |= 0x80;
+          dccShift |= 0x01;
         dccState++;
         break;
     }
@@ -563,7 +563,7 @@ void simplexDCC () {
   preambleCount = 0;
   newPacket = false;
   accAddr = 0;
-  dccPinPort = portInputRegister( digitalPinToPort(_DCC_PIN) );
+  dccPinPort = portInputRegister( digitalPinToPort(_DCC_PIN));
   dccPinMask = digitalPinToBitMask(_DCC_PIN);
   pinMode(_DCC_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(_DCC_PIN), dccISR, CHANGE);
@@ -581,6 +581,7 @@ void dccDecode() {
       }
     }
   }
+  newPacket = false;
 }
 
 

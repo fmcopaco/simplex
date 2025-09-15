@@ -9,7 +9,7 @@ SET_NAME(DERECHA_S, 8)              // Nombre para el pin del sensor derecha ví
 SET_NAME(LUZ1, 4)                   // Nombre para el pin del LED rojo
 SET_NAME(LUZ2, 5)                   // Nombre para el pin del LED rojo
 
-// Define los estados aquí (multi FSM)
+                            // Define los estados aquí (multi FSM)
 FSM_NEW(FSM_VIA_N)
 FSM_NAME(LIBRE_N)                   // paso a nivel libre vía Norte
 FSM_NAME(ENTRA_DERECHA_N)           // tren entrando por la derecha
@@ -28,11 +28,11 @@ FSM_NEW(FSM_BARRERA)
 FSM_NAME(PAN_LIBRE)                 // Paso a nivel libre
 FSM_NAME(TREN_DETECTADO)            // Tren detectado en paso a nivel
 
-// Define las variables aquí
+                            // Define las variables aquí
 VAR_NAME(trenEnViaN)
 VAR_NAME(trenEnViaS)
 
-// Define funciones adicionales aquí
+                            // Define funciones adicionales aquí
 FUNCTION(BajarBarrera) {
   SET(LUZ1)
   SET(LUZ2)
@@ -63,7 +63,7 @@ FUNCTION(PASO_A_NIVEL) {               // Paso a nivel
 }
 
 void setup() {
-  // Define los pines aquí
+                            // Define los pines aquí
   PIN_SERVO(BARRERA)                // servo que mueve la campana
   PIN_TIME(BARRERA, 10)             // velocidad del servo
   PIN_EFFECT(LUZ1)                  // LED rojo señal
@@ -82,7 +82,7 @@ void setup() {
   PIN_SENSOR(IZQUIERDA_S)           // sensor izquierda vía sur
   PIN_TIME(IZQUIERDA_S, 2000)       // para sensor infrarrojo aumentar tiempo
 
-  // Define el estado inicial aquí
+                            // Define el estado inicial aquí
   CALL(SubirBarrera)
   SET_VAR(trenEnViaN, 0)
   SET_VAR(trenEnViaS, 0)
