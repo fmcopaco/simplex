@@ -77,6 +77,31 @@ prepocesador generará un error al compilar el código.
 |DCC_ACC_RED(n) |Comprobar si el número de accesorio recibido está en rojo|
 |DCC_ACC_GREEN(n) |Comprobar si el número de accesorio recibido está en verde|
 
+
+
+### Efectos para PIN_OUT
+
+|Efecto|Descripción|
+|---|---|
+|NORMAL|Salida normal|
+|INVERT|Salida invertida|
+|FLASH|Salida intermitente|
+
+
+
+### Efectos luminosos para PIN_EFFECT
+
+|Efecto|Descripción|
+|---|---|
+|DIMMER|Encendido / apagado lento|
+|FLASH|Parpadeo con encendido / apagado lento|
+|CANDLE|Vela|
+|FIRE|Fuego|
+|FLUORESCENT|Luz fluorescente |
+|WELDING|Soldadura|
+
+
+
 ## Manual
 
 El manual de la librería lo podéis ver [aquí](doc/simplex_manual.pdf).
