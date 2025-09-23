@@ -19,8 +19,18 @@ uint16_t repeatVar[_MAX_REPEAT + 1];
 uint8_t lastTime;
 uint8_t pwmTimer;
 uint8_t doEffect;
+bool newMS;
 
 #define MAX_BRIGHT 255
+
+
+void processSimplexBasic();
+void receiveSimplexDCC();
+void processSimplexDCC();
+void processSimplex();
+void waitSimplex();
+void waitTime(uint32_t timeout);
+void waitServoStop(uint8_t num);
 
 
 void setType(uint8_t num, pinType type) {
@@ -171,7 +181,7 @@ uint8_t getRandom() {
   return (uint8_t)rnd;
 }
 
-void processTimers() {                                                        // every 1 ms
+void processPins() {                                                        // every 1 ms
   uint8_t n;
   uint16_t i;
   pwmTimer += 16;
@@ -363,6 +373,13 @@ void processTimers() {                                                        //
                     break;
                 }
                 break;
+              case PWM:
+                if (bitRead(pinDef[n].pos, 7))                                // start
+                  pinDef[n].pwm = (uint8_t)pinDef[n].timeout << 4;            // PWM: 0..15 (62.5Hz)
+                if (bitRead(pinDef[n].pos, 6))                                // stop
+                  pinDef[n].pwm = 0;
+                pinDef[n].pos = 0x00;
+                break;
             }
           }
           break;
@@ -426,12 +443,19 @@ void processTimers() {                                                        //
       }
     }
   }
-  for (n = 0; n < _MAX_TIMERS; n++) {
-    delayDef[n].expired = false;
-    if (delayDef[n].active) {
-      if (currentTime - delayDef[n].timer > delayDef[n].timeout) {
-        delayDef[n].active = false;
-        delayDef[n].expired = true;
+}
+
+
+void processTimers () {
+  uint8_t n;
+  if (newMS) {
+    for (n = 0; n < _MAX_TIMERS; n++) {
+      delayDef[n].expired = false;
+      if (delayDef[n].active) {
+        if (currentTime - delayDef[n].timer > delayDef[n].timeout) {
+          delayDef[n].active = false;
+          delayDef[n].expired = true;
+        }
       }
     }
   }
@@ -591,12 +615,219 @@ bool isAccessoryDCC(uint16_t adr, uint8_t state) {
 #endif
 
 
+#if (USE_XNET == true)
+#define WAIT_FOR_XMIT_COMPLETE {while (!(UCSR0A & (1<<TXC0))); UCSR0A = (1<<TXC0); UCSR0A = 0;}
+
+enum xAnswer {HEADER, DATA1, DATA2, DATA3, DATA4, DATA5};
+
+volatile byte rxBufferXN[20];                                               // Comunicacion Xpressnet
+volatile byte txBuffer[14];
+volatile byte txBytes;
+volatile byte rxBytes;
+volatile byte miCallByte;
+volatile bool enviaMensaje;                                                 // Envia nuevo mensaje Xpressnet
+volatile bool leerDatoXN;
+byte rxXOR, rxIndice, txXOR, rxData;
+byte csStatus, xnetVersion, xnetCS;
+int miDireccionXpressnet;
+
+uint8_t RS[128];
+
+
+void headerXN (byte header) {
+  while (enviaMensaje) {                                                    // espera a que se envie el ultimo mensaje
+  }
+  //enviaMensaje = false;                                                   // ahora podemos modificar el buffer
+  txBytes = HEADER;                                                         // coloca header en el buffer
+  txXOR = header;
+  txBuffer[txBytes++] = header;
+}
+
+
+void dataXN (byte dato) {
+  txBuffer[txBytes++] = dato;                                               // coloca dato en el buffer
+  txXOR ^= dato;
+}
+
+
+void sendXN () {
+  txBuffer[txBytes++] = txXOR;                                              // coloca XOR byte en el buffer
+  enviaMensaje = true;
+}
+
+
+void processXN() {
+  byte n, nibble, modulo, dato;
+
+  switch (rxBufferXN[HEADER]) {                                             // segun el header byte
+    default:
+      if ((rxBufferXN[HEADER] & 0xF0) == 0x40) {                            // Feedback broadcast / Accessory decoder information response (0x4X,MOD,DATA,...,XOR)
+        for (n = HEADER; n < (rxBytes - 2); n += 2) {
+          modulo = rxBufferXN[n + 1];
+          dato = rxBufferXN[n + 2];
+          nibble = (dato & 0x10) ? 0x0F : 0xF0;
+          RS[modulo] &= nibble;
+          nibble = (dato & 0x10) ? (dato << 4) : (dato & 0x0F);
+          RS[modulo] |= nibble;
+        }
+      }
+      break;
+  }
+}
+
+
+void sendUSART (byte data) {
+  while (!(UCSR0A & (1 << UDRE0)));                                         // esperar a que se pueda enviar
+  UDR0 = data;
+}
+
+
+ISR(USART_RX_vect)  {                                                       // Interrupcion recepcion datos por Serial
+  if (UCSR0A & ((1 << FE0) | (1 << DOR0) | (1 << UPE0))) {                  // error en la recepcion?
+    rxData = UDR0;
+    return;
+  }
+  if (UCSR0B & (1 << RXB80)) {                                              // leer primero 9 bit. Activado: Call Byte
+    rxData = UDR0;
+    leerDatoXN = false;
+    rxIndice = HEADER;
+    if (rxData == (miCallByte ^ 0xC0)) {                                    // Call Byte: P10AAAAA. Normal Inquiry
+      if (enviaMensaje) {                                                   // Hay mensaje para enviar?
+        delayMicroseconds(48);                                              // esperamos el tiempo de tres bit antes de enviar
+        digitalWrite (_TXRX_PIN, HIGH);                                     // enviamos mensaje
+        delayMicroseconds(8);                                               // esperamos el tiempo de medio bit antes de enviar
+        for (rxIndice = HEADER; rxIndice < txBytes; rxIndice++)
+          sendUSART (txBuffer[rxIndice]);
+        WAIT_FOR_XMIT_COMPLETE
+        digitalWrite (_TXRX_PIN, LOW);
+        enviaMensaje = false;
+      }
+    }
+    // Call Byte:   P11AAAAA Message,    P0100000 Feedback BC o P1100000 Broadcast
+    if ((rxData == (miCallByte | 0x60)) || (rxData == 0xA0) || (rxData == 0x60)) {
+      leerDatoXN = true;
+      rxXOR = 0;
+    }
+    if (rxData == miCallByte) {                                             // Call Byte: P00AAAAA. Request ACK
+      delayMicroseconds(32);                                                // esperamos el tiempo de dos bit antes de enviar
+      digitalWrite (_TXRX_PIN, HIGH);                                       // respuesta inmediata si ha habido error de transmision
+      delayMicroseconds(8);                                                 // esperamos el tiempo de medio bit antes de enviar
+      sendUSART (0x20);
+      sendUSART (0x20);
+      WAIT_FOR_XMIT_COMPLETE
+      digitalWrite (_TXRX_PIN, LOW);
+    }
+  }
+  else {                                                                    // 9 bit desactivado: Datos
+    rxData = UDR0;
+    if (leerDatoXN) {                                                       // leer paquete Xpressnet
+      rxBufferXN[rxIndice++] = rxData;
+      rxXOR ^= rxData;
+      if (((rxBufferXN[HEADER] & 0x0F) + 2) == rxIndice) {                  // si se han recibido todos los datos indicados en el paquete
+        leerDatoXN = false;
+        if (rxXOR == 0) {                                                   // si el paquete es correcto
+          rxBytes = rxIndice;
+          processXN();                                                      // nuevo paquete recibido, procesarlo
+        }
+      }
+    }
+  }
+}
+
+
+byte paridadCallByte (byte xnetAddr) {
+  bool paridad = false;
+  byte bits;
+  xnetAddr &= 0x1F;                                                         // Borra bit 7 de la direccion
+  bits = xnetAddr;
+  while (bits) {                                                            // mientras haya bits cambia paridad
+    paridad = !paridad;
+    bits &= (bits - 1);
+  }
+  if (paridad)                                                              // coloca paridad en bit 7
+    xnetAddr |= 0x80;
+  return (xnetAddr);                                                        // P00AAAAA
+}
+
+
+void beginXpressNet (byte xnetAddr) {
+  miCallByte = paridadCallByte (xnetAddr);
+  enviaMensaje = false;
+  leerDatoXN = false;
+  rxIndice = DATA1;
+  cli();                                                                    // deshabilitar interrupciones para acceder a registros
+  UBRR0H = 0;                                                               // UBRR = (FXTAL / (16 *  baud)) - 1 si U2X = 0
+  UBRR0L = 0x0F;                                                            // Set 62500 baud
+  UCSR0A = 0;                                                               // U2X = 0
+  UCSR0B = (1 << RXEN0) | (1 << TXEN0) | (1 << RXCIE0) | (1 << UCSZ02);     // Enable reception (RXEN) transmission (TXEN0) Receive Interrupt (RXCIE = 1)
+  UCSR0C = (1 << UCSZ01) | (1 << UCSZ00);                                   // UCSZ = b111 = 9 bits
+  sei();                                                                    // habilitar interrupciones
+  //getVersion();                                                           // pide la version del Xpressnet
+  //getStatus();                                                            // pide estado de la central
+}
+
+void simplexXNET(uint8_t xnetAddr) {
+  pinDef[_TX_PIN].type = _XNET;
+  pinDef[_RX_PIN].type = _XNET;
+  pinDef[_TXRX_PIN].type = _XNET;
+  pinMode(_TXRX_PIN, OUTPUT);
+  digitalWrite(_TXRX_PIN, LOW);                                             // receive data
+  beginXpressNet(xnetAddr);
+}
+
+
+void setAccXnet(uint16_t addr, uint8_t pos) {
+  byte  adr, dato;
+  addr--;                                                                   // 000000AAAAAAAABB
+  adr = (addr >> 2) & 0x00FF;                                               // AAAAAAAA
+  dato = ((addr & 0x0003) << 1) | 0x88;                                     // 10001BBx activate
+  dato |= pos;
+
+  headerXN (0x52);                                                          // Accessory Decoder operation request    (0x52,AAAAAAAA,10001BBD,XOR)
+  dataXN (adr);
+  dataXN (dato);
+  sendXN();
+  waitTime(_XN_ACC_TOUT);
+  dato &= 0xF7;                                                             // 10000BBx deactivate
+  headerXN (0x52);                                                          // Accessory Decoder operation request    (0x52,AAAAAAAA,10000BBD,XOR)
+  dataXN (adr);
+  dataXN (dato);
+  sendXN();
+}
+
+
+bool isFeedbackActive(uint8_t mod, uint8_t inp) {
+  return (bool)(RS[mod - 1] & bit(inp - 1));
+}
+
+void toggleAccXnet(uint16_t addr) {
+  uint8_t mod, inp;
+  uint16_t adr;
+  if (addr < 513) {
+    adr = addr - 1;
+    mod = adr >> 2;
+    inp = (adr & 0x03) * 2;
+    inp = bitRead(RS[mod], inp) ? 0x01 : 0x00;
+    setAccXnet(addr, inp);
+  }
+}
+
+#endif
+
+
+
+
+
+//-------------------------------------------------------------------------------------------------
+
 void processSimplexBasic() {
   uint8_t n;
   currentTime = millis();
+  newMS = false;
   if (lastTime != (uint8_t)currentTime) {                 // every new ms
     lastTime = (uint8_t)currentTime;
-    processTimers();                                      // timers
+    newMS = true;
+    processPins();                                        // pins
   }
   for (n = 0; n <= _MAX_FSM; n++)
     currentStateFSM[n] = nextStateFSM[n];                 // state machine
@@ -617,14 +848,15 @@ void processSimplexDCC() {
 #endif
 }
 
-
 void processSimplex() {
-  processSimplexBasic();                                  // timers
+  processSimplexBasic();                                  // pins & FSM
+  processTimers();                                        // timers
   processSimplexDCC();                                    // DCC
 }
 
+
 void waitSimplex() {
-  processSimplexBasic();                                  // timers
+  processSimplexBasic();                                  // pins & FSM
   receiveSimplexDCC();                                    // receive DCC
 }
 
@@ -638,5 +870,11 @@ void waitTime(uint32_t timeout) {
 
 void waitServoStop(uint8_t num) {
   while (! isServoStopped(num))
+    waitSimplex();
+}
+
+
+void waitReleaseButton(uint8_t num) {
+  while (isInputActive(num))
     waitSimplex();
 }

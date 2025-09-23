@@ -1,5 +1,8 @@
 /*    simplex.h -- F. Cañada 2025 --  https://usuaris.tinet.cat/fmco/
                                       https://github.com/fmcopaco/simplex
+
+      v0.1  13sep25   Initial version. Basic and DCC commands.
+      v0.2  21sep25   Added PWM effect. Added Xpressnet commads.
 */
 
 #ifndef SIMPLEX_H
@@ -8,14 +11,17 @@
 ////////////////////////////////////////////////////////////
 // ***** USER OPTIONS *****
 ////////////////////////////////////////////////////////////
+
 // Set next definitions to to false to save memory
 #define USE_DCC       true                                      // Use DCC decoding
+#define USE_XNET      true                                      // Use Xpressnet decoding
 
 #define _SPD_SERVO    100                                       // Default speed of servo
 #define _COIL_TOUT    200                                       // Default pulse time (COIL)
 #define _INPUT_TOUT   20                                        // Default time for debouncing (INPUT)
 #define _SENSOR_TOUT  500                                       // Default time for debouncing (SENSOR)
 #define _FLASH_TOUT   500                                       // Default time for flashing (OUT/EFFECT)
+#define _XN_ACC_TOUT  150                                       // Time for activate Xpressnet accesories
 #define _MAX_TIMERS   4                                         // Max. defined timers
 #define _MAX_REPEAT   4                                         // Max. nested repeats
 #define _MAX_FSM      10                                        // Max. FSM
@@ -30,8 +36,11 @@
 ////////////////////////////////////////////////////////////
 
 #define _MAX_PINS     20                                        // Max. pins of the device (Arduino UNO/Nano: 20)
-#define _DCC_PIN      2                                         // DCC input pin. Must use interrupts
 #define _MAX_SERVO    12                                        // Max. servo available (library Servo.h: 12)
+#define _DCC_PIN      2                                         // DCC input pin. Must use interrupts
+#define _TX_PIN       0                                         // Serial TX pin for Xpressnet (MAX485)
+#define _RX_PIN       1                                         // Serial RX pin for Xpressnet (MAX485)
+#define _TXRX_PIN     A5                                        // Direction pin for Xpressnet (MAX485)
 
 ////////////////////////////////////////////////////////////
 // ***** SIMPLEX BASIC DEFINED FUNCTIONS *****
@@ -74,6 +83,7 @@
 
 #define WAIT(n)         waitTime(n);                            // Wait time running simplex loop
 #define WAIT_SERVO(p)   waitServoStop(p);                       // Wait servo to arrive new position running simplex loop
+#define WAIT_RELEASE(p) waitReleaseButton(p);                   // Wait to release button  
 
 #define FUNCTION(n)     void n()                                // Define a function
 #define CALL(n)         n();                                    // Call a function
@@ -97,6 +107,20 @@
 #endif
 
 
+#if (USE_XNET == true)
+////////////////////////////////////////////////////////////
+// ***** SIMPLEX XNET DEFINED FUNCTIONS *****
+////////////////////////////////////////////////////////////
+
+#define XNET_ADDR(n)        simplexXNET(n);                     // initialize Xpressnet interface (MAX485). Valid address: 1..31
+#define XNET_RED(n)         setAccXnet(n, 0x00);                // Set accesory number to red
+#define XNET_GREEN(n)       setAccXnet(n, 0x01);                // Set accesory number to green
+#define XNET_TOGGLE(n)      toggleAccXnet(n);                   // Toggle accessory position
+#define XNET_ACTIVE(n,p)    if (isFeedbackActive(n,p))          // check if RS input occupied
+#define XNET_FREE(n,p)      if (!isFeedbackActive(n,p))         // check if RS input free
+#endif
+
+
 //------------------------------------------------------------------------------------------------------------------------------
 
 ////////////////////////////////////////////////////////////
@@ -109,7 +133,7 @@
 
 typedef enum {_UNDEF, _OUT, _EFFECT, _SERVO, _COIL, _BUTTON, _INPUT, _SENSOR, _DCC, _XNET, _LNET} pinType;
 
-typedef enum {NORMAL, INVERT, FLASH, DIMMER, CANDLE, FIRE, FLUORESCENT, WELDING} modeType;
+typedef enum {NORMAL, INVERT, FLASH, DIMMER, CANDLE, FIRE, FLUORESCENT, WELDING, PWM} modeType;
 
 typedef struct {
   pinType   type;                                               // pin type
@@ -150,6 +174,7 @@ void waitTime(uint32_t timeout);
 bool isServoStopped(uint8_t num);
 bool isInputActive(uint8_t num);
 void waitServoStop(uint8_t num);
+void waitReleaseButton(uint8_t num);
 void newRepeat();
 uint8_t newState();
 uint8_t newFSM();
@@ -167,6 +192,19 @@ void simplexDCC();
 bool isAccessoryDCC(uint16_t adr, uint8_t state);
 
 #endif
+
+#if (USE_XNET == true)
+////////////////////////////////////////////////////////////
+// ***** SIMPLEX XPRESSNET LIBRARY *****
+////////////////////////////////////////////////////////////
+
+void simplexXNET(uint8_t xnetAddr);
+void setAccXnet(uint16_t addr, uint8_t pos);
+void toggleAccXnet(uint16_t addr);
+bool isFeedbackActive(uint8_t mod, uint8_t inp);
+
+#endif
+
 
 
 #endif

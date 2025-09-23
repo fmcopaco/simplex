@@ -60,6 +60,7 @@ prepocesador generará un error al compilar el código.
 |TIMEOUT(p) |Comprobar si el temporizador acabó (máx. 4: _MAX_TIMERS)|
 |WAIT(n) |Espera un tiempo procesando acciones simplex|
 |WAIT_SERVO(p) |Espera que un servo llegue a la posición procesando acciones simplex|
+|WAIT_RELEASE(p)|Espera a que se suelte el botón |
 |FUNCTION(n) |Define una función|
 |CALL(n) |Llamar a una función|
 |REPEAT(n) |Repetir comandos (2..65535 veces, máx. 4 bucles: _MAX_REPEAT)|
@@ -77,6 +78,16 @@ prepocesador generará un error al compilar el código.
 |DCC_ACC_RED(n) |Comprobar si el número de accesorio recibido está en rojo|
 |DCC_ACC_GREEN(n) |Comprobar si el número de accesorio recibido está en verde|
 
+### Comandos Xpressnet
+
+|Comando|Descripción|
+|---|---|
+|XNET_ADDR(n)|	Inicializa interface Xpressnet (MAX485). Dirección válida: 1..31 |
+|XNET_RED(n) |     	Mover el accesorio a rojo (1..1024)|
+|XNET_GREEN(n)|    	Mover el accesorio a verde (1..1024)|
+|XNET_TOGGLE(n)|	Mover accesorio a la otra posición (1..512)|
+|XNET_ACTIVE(n,p)|	Comprobar si la entrada p del módulo RS n está ocupada|
+|XNET_FREE(n,p)|	Comprobar si la entrada p del módulo RS n está libre|
 
 
 ### Efectos para PIN_OUT
@@ -99,6 +110,7 @@ prepocesador generará un error al compilar el código.
 |FIRE|Fuego|
 |FLUORESCENT|Luz fluorescente |
 |WELDING|Soldadura|
+|PWM|Intensidad 0..15 (62.5Hz)|
 
 
 
