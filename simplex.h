@@ -40,7 +40,7 @@
 #define _DCC_PIN      2                                         // DCC input pin. Must use interrupts
 #define _TX_PIN       0                                         // Serial TX pin for Xpressnet (MAX485)
 #define _RX_PIN       1                                         // Serial RX pin for Xpressnet (MAX485)
-#define _TXRX_PIN     A5                                        // Direction pin for Xpressnet (MAX485)
+#define _TXRX_PIN     A3                                        // Direction pin for Xpressnet (MAX485)
 
 ////////////////////////////////////////////////////////////
 // ***** SIMPLEX BASIC DEFINED FUNCTIONS *****
