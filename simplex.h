@@ -118,6 +118,7 @@
 #define XNET_TOGGLE(n)      toggleAccXnet(n);                   // Toggle accessory position
 #define XNET_ACTIVE(n,p)    if (isFeedbackActive(n,p))          // check if RS input occupied
 #define XNET_FREE(n,p)      if (!isFeedbackActive(n,p))         // check if RS input free
+#define XNET_CHANGED(n)     if (isFeedbackChanged(n))           // check if RS module has changes
 #endif
 
 
@@ -202,6 +203,7 @@ void simplexXNET(uint8_t xnetAddr);
 void setAccXnet(uint16_t addr, uint8_t pos);
 void toggleAccXnet(uint16_t addr);
 bool isFeedbackActive(uint8_t mod, uint8_t inp);
+bool isFeedbackChanged(uint8_t mod);
 
 #endif
 

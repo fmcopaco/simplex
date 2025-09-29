@@ -60,7 +60,7 @@ prepocesador generará un error al compilar el código.
 |TIMEOUT(p) |Comprobar si el temporizador acabó (máx. 4: _MAX_TIMERS)|
 |WAIT(n) |Espera un tiempo procesando acciones simplex|
 |WAIT_SERVO(p) |Espera que un servo llegue a la posición procesando acciones simplex|
-|WAIT_RELEASE(p)|Espera a que se suelte el botón |
+|WAIT_RELEASE(p)|Espera a que se suelte el botón procesando acciones simplex|
 |FUNCTION(n) |Define una función|
 |CALL(n) |Llamar a una función|
 |REPEAT(n) |Repetir comandos (2..65535 veces, máx. 4 bucles: _MAX_REPEAT)|
@@ -88,6 +88,7 @@ prepocesador generará un error al compilar el código.
 |XNET_TOGGLE(n)|	Mover accesorio a la otra posición (1..512)|
 |XNET_ACTIVE(n,p)|	Comprobar si la entrada p del módulo RS n está ocupada|
 |XNET_FREE(n,p)|	Comprobar si la entrada p del módulo RS n está libre|
+|XNET_CHANGED(n)|	Comprobar si hay cambios en el módulo RS n|
 
 
 ### Efectos para PIN_OUT

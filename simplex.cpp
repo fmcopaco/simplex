@@ -632,6 +632,7 @@ byte csStatus, xnetVersion, xnetCS;
 int miDireccionXpressnet;
 
 uint8_t RS[128];
+uint8_t changesRS[16];
 
 
 void headerXN (byte header) {
@@ -669,6 +670,7 @@ void processXN() {
           RS[modulo] &= nibble;
           nibble = (dato & 0x10) ? (dato << 4) : (dato & 0x0F);
           RS[modulo] |= nibble;
+          bitSet(changesRS[modulo >> 3], modulo & 0x07);
         }
       }
       break;
@@ -799,6 +801,20 @@ void setAccXnet(uint16_t addr, uint8_t pos) {
 bool isFeedbackActive(uint8_t mod, uint8_t inp) {
   return (bool)(RS[mod - 1] & bit(inp - 1));
 }
+
+
+bool isFeedbackChanged(uint8_t mod) {
+  uint8_t module;
+  bool change;
+  mod--;
+  module = mod >> 3;
+  cli();
+  change = bitRead(changesRS[module], mod & 0x07);
+  bitClear(changesRS[module], mod & 0x07);
+  sei();
+  return change;
+}
+
 
 void toggleAccXnet(uint16_t addr) {
   uint8_t mod, inp;
