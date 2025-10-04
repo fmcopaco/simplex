@@ -20,6 +20,11 @@ uint8_t lastTime;
 uint8_t pwmTimer;
 uint8_t doEffect;
 bool newMS;
+uint8_t stepCoilFull[] = {B1100, B0110, B0011, B1001};
+//uint8_t stepCoilFull[] = {B1010, B0110, B0101, B1001};                  // alternate sequence
+uint8_t stepCoilHalf[] = {B1000, B1100, B0100, B0110,
+                          B0010, B0011, B0001, B1001
+                         };
 
 #define MAX_BRIGHT 255
 
@@ -34,6 +39,7 @@ void waitServoStop(uint8_t num);
 
 
 void setType(uint8_t num, pinType type) {
+  uint8_t i;
   pinDef[num].type = type;
   pinDef[num].active = false;
   pinDef[num].invert = false;
@@ -78,6 +84,33 @@ void setType(uint8_t num, pinType type) {
       pinDef[num].timer = millis();
       pinDef[num].timeout = _SENSOR_TOUT;
       pinDef[num].active = digitalRead(num);
+      break;
+    case _STEP4:                                                            // 4 pins stepper
+      if (num < (_MAX_PINS - 3)) {
+        for (i = 0; i < 4; i++) {
+          pinMode(num + i, OUTPUT);
+          digitalWrite(num + i, LOW);
+          pinDef[num + i].type = _STEP_DATA;
+        }
+        pinDef[num].type = _STEP4;
+        pinDef[num].timer = millis();
+        pinDef[num].timeout = _SPD_STEPPER;
+        pinDef[num].index = FULL_STEP;                                      // FULL_STEP / HALF_STEP
+        stepper(num, 0, 0x00);                                              // reset current step position
+      }
+      break;
+    case _STEP2:                                                            // 2 pins stepper
+      if (num < (_MAX_PINS - 1)) {
+        pinMode(num, OUTPUT);
+        pinMode(num + 1, OUTPUT);
+        digitalWrite(num, LOW);
+        digitalWrite(num + 1, LOW);
+        pinDef[num + 1].type = _STEP_DATA;
+        pinDef[num].timer = millis();
+        pinDef[num].timeout = _SPD_STEPPER;
+        pinDef[num].index = DRIVER;                                         // FULL_STEP / DRIVER
+        stepper(num, 0, 0x00);                                              // reset current step position
+      }
       break;
     case _DCC:
       break;
@@ -139,7 +172,6 @@ void setPin(uint8_t num, bool state) {
   }
 }
 
-
 void setServoPos(uint8_t num, uint8_t pos) {
   if (pinDef[num].target == 255) {                                          // First time
     pinDef[num].pos = pos;
@@ -153,6 +185,27 @@ void setServoPos(uint8_t num, uint8_t pos) {
 bool isServoStopped(uint8_t num) {
   return (pinDef[num].target == pinDef[num].pos);
 }
+
+
+void stepper(uint8_t num, uint32_t steps, uint8_t mode) {
+  num++;
+  switch (mode) {
+    case 0x00:                                                              // set current step position
+      pinDef[num].timer = steps;                                            // target step position
+      pinDef[num].timeout = steps;                                          // current step position
+      break;
+    case 0x01:                                                              // move stepper to absolute step position
+      pinDef[num].timer = steps;
+      break;
+    case 0x02:                                                              // move stepper to relative step position clockwise
+      pinDef[num].timer += steps;
+      break;
+    case 0x03:                                                              // move stepper to relative step position counterclockwise
+      pinDef[num].timer -= steps;
+      break;
+  }
+}
+
 
 bool isInputActive(uint8_t num) {
   return (pinDef[num].state);
@@ -182,7 +235,7 @@ uint8_t getRandom() {
 }
 
 void processPins() {                                                        // every 1 ms
-  uint8_t n;
+  uint8_t n, m;
   uint16_t i;
   pwmTimer += 16;
   doEffect = (doEffect + 1) & 0x07;
@@ -437,6 +490,53 @@ void processPins() {                                                        // e
             if (currentTime - pinDef[n].timer > pinDef[n].timeout) {
               pinDef[n].state = false;
               pinDef[n].timer = currentTime;
+            }
+          }
+          break;
+        case _STEP4:
+          if (pinDef[n + 1].timer != pinDef[n + 1].timeout) {                 // if stepper not in position
+            if (currentTime - pinDef[n].timer > pinDef[n].timeout) {
+              pinDef[n].timer = currentTime;
+              if (pinDef[n + 1].timer > pinDef[n + 1].timeout)
+                pinDef[n + 1].timeout++;
+              else
+                pinDef[n + 1].timeout--;
+
+              if (pinDef[n].index == FULL_STEP)
+                m = stepCoilFull[(uint8_t)pinDef[n + 1].timeout & 0x03];
+              else
+                m = stepCoilHalf[(uint8_t)pinDef[n + 1].timeout & 0x07];
+              digitalWrite(n,     m & 0x01);
+              digitalWrite(n + 1, m & 0x02);
+              digitalWrite(n + 2, m & 0x04);
+              digitalWrite(n + 3, m & 0x08);
+            }
+          }
+          break;
+        case _STEP2:
+          if (pinDef[n + 1].timer != pinDef[n + 1].timeout) {                 // if stepper not in position
+            if (currentTime - pinDef[n].timer > pinDef[n].timeout) {
+              pinDef[n].timer = currentTime;
+              if (pinDef[n + 1].timer > pinDef[n + 1].timeout) {
+                pinDef[n + 1].timeout++;
+                if (pinDef[n].index == DRIVER)
+                  digitalWrite(n + 1, pinDef[n].invert ? LOW : HIGH);
+              }
+              else {
+                pinDef[n + 1].timeout--;
+                if (pinDef[n].index == DRIVER)
+                  digitalWrite(n + 1, pinDef[n].invert ? HIGH : LOW);
+              }
+              if (pinDef[n].index == DRIVER) {
+                digitalWrite(n, HIGH);
+                delayMicroseconds(5);
+                digitalWrite(n, LOW);
+              }
+              else {
+                m = stepCoilFull[(uint8_t)pinDef[n + 1].timeout & 0x03];
+                digitalWrite(n,     m & 0x02);
+                digitalWrite(n + 1, m & 0x04);
+              }
             }
           }
           break;
@@ -889,6 +989,11 @@ void waitServoStop(uint8_t num) {
     waitSimplex();
 }
 
+void waitStepperStop(uint8_t num) {
+  num++;
+  while (pinDef[num].timer != pinDef[num].timeout)
+    waitSimplex();
+}
 
 void waitReleaseButton(uint8_t num) {
   while (isInputActive(num))

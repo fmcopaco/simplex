@@ -42,11 +42,17 @@ prepocesador generará un error al compilar el código.
 |PIN_INPUT(p) |Define un pin como entrada|
 |PIN_BUTTON(p)| Define un pin como entrada anti rebote (Pulsador, final carrera…)|
 |PIN_SENSOR(p) |Define un pin como una entrada de sensor|
+|PIN_STEPPER4(p) |Define 4 pins consecutivos para control motor paso a paso (tipo 28BYJ-48)|
+|PIN_STEPPER2(p) |Define 2 pins consecutivos para control motor paso a paso (tipo driver A4988 y similares, p: STEP, p+1: DIR)|
 |PIN_MODE(p,n) |Establece el modo de un pin (tipo PIN_OUT/ PIN_EFFECT)|
 |PIN_TIME(p,n) |Establece el tiempo para un pin o velocidad de un servo|
 |SET(p) |Activa pin de salida (tipo PIN_OUT/ PIN_EFFECT/ PIN_COIL)|
 |RESET(p) |Desactiva pin de salida (tipo PIN_OUT/ PIN_EFFECT/ PIN_COIL)|
 |SERVO(p,n) |Mover el servo a una posición (0..180)|
+|STEPPER_SET(p,n)|Establece el paso actual (posición) del motor paso a paso|
+|STEPPER_GO(p,n)|Mover el motor paso a paso a la posición absoluta|
+|STEPPER_CW(p,n)|Mover el motor paso a paso a la posición relativa (sentido horario)|
+|STEPPER_CCW(p,n)|Mover el motor paso a paso a la posición relativa (sentido antihorario)|
 |ARRIVED(p) |Comprobar si el servo llegó a la posición|
 |PRESSED(p) |Comprobar si se pulsó el botón|
 |ACTIVE(p) |Comprobar si el sensor esta activo|
@@ -61,6 +67,7 @@ prepocesador generará un error al compilar el código.
 |WAIT(n) |Espera un tiempo procesando acciones simplex|
 |WAIT_SERVO(p) |Espera que un servo llegue a la posición procesando acciones simplex|
 |WAIT_RELEASE(p)|Espera a que se suelte el botón procesando acciones simplex|
+|WAIT_STEPPER(p) |Espera que un motor paso a paso llegue a la posición procesando acciones simplex|
 |FUNCTION(n) |Define una función|
 |CALL(n) |Llamar a una función|
 |REPEAT(n) |Repetir comandos (2..65535 veces, máx. 4 bucles: _MAX_REPEAT)|

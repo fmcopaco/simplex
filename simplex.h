@@ -17,6 +17,7 @@
 #define USE_XNET      true                                      // Use Xpressnet decoding
 
 #define _SPD_SERVO    100                                       // Default speed of servo
+#define _SPD_STEPPER  30                                        // Default speed of stepper
 #define _COIL_TOUT    200                                       // Default pulse time (COIL)
 #define _INPUT_TOUT   20                                        // Default time for debouncing (INPUT)
 #define _SENSOR_TOUT  500                                       // Default time for debouncing (SENSOR)
@@ -59,6 +60,8 @@
 #define PIN_INPUT(p)    setType(p, _INPUT);                     // set a pin as digital input
 #define PIN_BUTTON(p)   setType(p, _BUTTON);                    // set a pin as debouncing input (ex. pushutton)
 #define PIN_SENSOR(p)   setType(p, _SENSOR);                    // set a pin as sensor
+#define PIN_STEPPER4(p) setType(p, _STEP4);                     // set 4 consecutive pins to control a stepper motor (28BYJ-48 type)
+#define PIN_STEPPER2(p) setType(p, _STEP2);                     // set 2 consecutive pins to control a stepper motor (A4988 type driver, p: STEP, p+1: DIR)
 
 #define PIN_MODE(p,n)   setModePin(p,n);                        // set the pin mode (type OUT/EFFECT)
 #define PIN_TIME(p,n)   setTimePin(p,n);                        // set pin timeout/servo speed
@@ -66,11 +69,15 @@
 #define SET(p)          setPin(p, true);                        // activate output pin (type OUT/EFFECT/COIL)
 #define RESET(p)        setPin(p, false);                       // deactivate output pin (type OUT/EFFECT/COIL)
 #define SERVO(p,n)      setServoPos(p,n);                       // move servo to new position (0..180)
-#define ARRIVED(p)      if (isServoStopped(p))                  // check if servo arrived
+#define STEPPER_SET(p,n)    stepper(p, n, 0x00);                // set current step position
+#define STEPPER_GO(p,n)     stepper(p, n, 0x01);                // move stepper to absolute step position
+#define STEPPER_CW(p,n)     stepper(p, n, 0x02);                // move stepper to relative step position clockwise
+#define STEPPER_CCW(p,n)    stepper(p, n, 0x03);                // move stepper to relative step position counterclockwise
 
+#define ARRIVED(p)      if (isServoStopped(p))                  // check if servo arrived
+#define PRESSED(p)      if (isInputActive(p))                   // check if button pressed
 #define ACTIVE(p)       if (isInputActive(p))                   // check if input active
 #define FREE(p)         if (!isInputActive(p))                  // check if input
-#define PRESSED(p)      if (isInputActive(p))                   // check if button pressed
 
 #define FSM_NEW(n)      const uint8_t n = newFSM();             // FSM, add a new FSM
 #define FSM_USE(n)      useFSM(n);                              // FSM, use FSM
@@ -84,6 +91,7 @@
 #define WAIT(n)         waitTime(n);                            // Wait time running simplex loop
 #define WAIT_SERVO(p)   waitServoStop(p);                       // Wait servo to arrive new position running simplex loop
 #define WAIT_RELEASE(p) waitReleaseButton(p);                   // Wait to release button  
+#define WAIT_STEPPER(p) waitStepperStop(p);                     // Wait stepper to arrive new position running simplex loop
 
 #define FUNCTION(n)     void n()                                // Define a function
 #define CALL(n)         n();                                    // Call a function
@@ -132,9 +140,9 @@
 #include <Servo.h>
 
 
-typedef enum {_UNDEF, _OUT, _EFFECT, _SERVO, _COIL, _BUTTON, _INPUT, _SENSOR, _DCC, _XNET, _LNET} pinType;
+typedef enum {_UNDEF, _OUT, _EFFECT, _SERVO, _COIL, _BUTTON, _INPUT, _SENSOR, _DCC, _XNET, _LNET, _STEP4, _STEP2, _STEP_DATA} pinType;
 
-typedef enum {NORMAL, INVERT, FLASH, DIMMER, CANDLE, FIRE, FLUORESCENT, WELDING, PWM} modeType;
+typedef enum {NORMAL, INVERT, FLASH, DIMMER, CANDLE, FIRE, FLUORESCENT, WELDING, PWM, FULL_STEP, HALF_STEP, DRIVER} modeType;
 
 typedef struct {
   pinType   type;                                               // pin type
@@ -175,12 +183,14 @@ void waitTime(uint32_t timeout);
 bool isServoStopped(uint8_t num);
 bool isInputActive(uint8_t num);
 void waitServoStop(uint8_t num);
+void waitStepperStop(uint8_t num);
 void waitReleaseButton(uint8_t num);
 void newRepeat();
 uint8_t newState();
 uint8_t newFSM();
 uint8_t useFSM(uint8_t num);
 bool repeatSimplex(uint16_t num);
+void stepper(uint8_t num, uint32_t steps, uint8_t mode);
 
 
 #if (USE_DCC == true)
