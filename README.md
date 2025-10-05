@@ -44,8 +44,8 @@ prepocesador generará un error al compilar el código.
 |PIN_SENSOR(p) |Define un pin como una entrada de sensor|
 |PIN_STEPPER4(p) |Define 4 pins consecutivos para control motor paso a paso (tipo 28BYJ-48)|
 |PIN_STEPPER2(p) |Define 2 pins consecutivos para control motor paso a paso (tipo driver A4988 y similares, p: STEP, p+1: DIR)|
-|PIN_MODE(p,n) |Establece el modo de un pin (tipo PIN_OUT/ PIN_EFFECT)|
-|PIN_TIME(p,n) |Establece el tiempo para un pin o velocidad de un servo|
+|PIN_MODE(p,n) |Establece el modo de un pin (tipo PIN_OUT/ PIN_EFFECT/PIN_STEPPER)|
+|PIN_TIME(p,n) |Establece el tiempo para un pin o la velocidad de un servo o motor paso a paso|
 |SET(p) |Activa pin de salida (tipo PIN_OUT/ PIN_EFFECT/ PIN_COIL)|
 |RESET(p) |Desactiva pin de salida (tipo PIN_OUT/ PIN_EFFECT/ PIN_COIL)|
 |SERVO(p,n) |Mover el servo a una posición (0..180)|
@@ -120,6 +120,14 @@ prepocesador generará un error al compilar el código.
 |WELDING|Soldadura|
 |PWM|Intensidad 0..15 (62.5Hz)|
 
+
+
+### Modos para los motores paso a paso
+|Efecto|Tipo Motor|Descripción|
+|---|---|---|
+|HALF_STEP|STEPPER4|Medio paso|
+|FULL_STEP|STEPPER4 / STEPPER2|Paso completo|
+|DRIVER|STEPPER2|Controlador de motores paso a paso|
 
 
 ## Manual
